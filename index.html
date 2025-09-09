@@ -1,0 +1,371 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Clean the Park! 🌳🗑</title>
+
+  <style>
+    :root{
+      --bg1: #a8edea;
+      --bg2: #fed6e3;
+      --text: #1b2b34;
+    }
+
+    html,body{
+      height:100%;
+      margin:0;
+      font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background: linear-gradient(135deg,var(--bg1),var(--bg2));
+      overflow:hidden;
+      color:var(--text);
+    }
+
+    .game-wrap{
+      height:100vh;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:flex-start;
+      gap:12px;
+      padding:18px;
+      box-sizing:border-box;
+      text-align:center;
+      user-select:none;
+    }
+
+    header{
+      margin-top: 12px;
+      text-shadow: 0 2px 6px rgba(0,0,0,0.12);
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      gap:10px;
+    }
+
+    h1{
+      font-size: clamp(24px, 4vw, 42px);
+      margin:0;
+    }
+
+    .status{
+      display:flex;
+      gap:12px;
+      align-items:center;
+      font-weight:600;
+      color:#05386b;
+      flex-wrap: wrap;
+      justify-content:center;
+    }
+
+    #message{
+      margin-top:6px;
+      min-height:22px;
+      font-size:14px;
+      opacity:0.95;
+    }
+
+    #play-area{
+      position: relative;
+      width: 100%;
+      height: calc(100vh - 180px);
+      max-width: 1200px;
+      border-radius: 14px;
+      box-shadow: 0 8px 30px rgba(10,10,10,0.08);
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.45), rgba(255,255,255,0.15)),
+        url('garbage-ground.png') bottom center no-repeat;
+      background-size: contain;
+      overflow: hidden;
+      margin-top: 8px;
+      touch-action: none;
+      display:none; /* hide before start */
+    }
+
+    .trash{
+      position: absolute;
+      display: inline-grid;
+      place-items: center;
+      cursor: grab;
+      transition: transform 120ms ease, left 300ms linear, top 300ms linear;
+      filter: drop-shadow(0 6px 8px rgba(0,0,0,0.18));
+      font-size: 26px;
+      will-change: transform, left, top;
+    }
+    .trash:active{ cursor:grabbing; }
+    .wiggle{ animation: wiggle 700ms ease-in-out infinite; }
+    @keyframes wiggle{ 0%{ transform: rotate(-6deg);} 50%{ transform: rotate(6deg);} 100%{ transform: rotate(-6deg);} }
+
+    /* Bin */
+    #bin{
+      position: absolute;
+      right: 18px;
+      bottom: 18px;
+      width: 110px;
+      height: 110px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.05);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:48px;
+      overflow:hidden;
+      z-index: 999;
+    }
+    #bin .inside-trash {
+      position: absolute;
+      font-size: 20px;
+      opacity: 0.8;
+      bottom: 20%;
+      will-change: transform, opacity;
+      animation: dropIn 0.4s ease forwards;
+    }
+    @keyframes dropIn {
+      from { transform: translateY(-40px) scale(0.5); opacity:0; }
+      to   { transform: translateY(0) scale(1); opacity:1; }
+    }
+    #bin.scaled{ transform: scale(1.18); }
+
+    .hud{
+      position:absolute;
+      left:12px;
+      top:12px;
+      z-index:1000;
+      background: rgba(255,255,255,0.45);
+      padding:8px 12px;
+      border-radius:999px;
+      backdrop-filter: blur(4px);
+      font-weight:600;
+      font-size:14px;
+    }
+
+    /* Start Button */
+    #startBtn{
+      margin-top:20px;
+      padding:12px 24px;
+      font-size:18px;
+      border:none;
+      border-radius:30px;
+      background:#05386b;
+      color:white;
+      cursor:pointer;
+      .trash {
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.trash:hover {
+  transform: scale(1.2);
+  background: lightgreen;
+}
+
+    }
+    #startBtn:hover{ background:#072c4f; transform:scale(1.05); }
+
+    /* Responsive */
+    @media (max-width: 768px){
+      #bin{ width:90px; height:90px; font-size:40px; }
+      .hud{ font-size:12px; padding:6px 10px; }
+      h1{ font-size: clamp(20px, 5vw, 32px); }
+    }
+
+    @media (max-width: 480px){
+      #bin{ width:74px; height:74px; font-size:32px; }
+      .hud{ font-size:11px; padding:5px 8px; }
+      .status{ gap:6px; font-size:13px; }
+      #message{ font-size:12px; }
+      #startBtn{ font-size:16px; padding:10px 20px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="game-wrap">
+    <header>
+      <h1>Clean the Park! 🌳🗑</h1>
+      <button id="startBtn">Start Game ▶</button>
+      <div class="status" id="status-bar" style="display:none;">
+        <div id="level">Level: 1</div>
+        <div id="score">Recycled: 0</div>
+        <div id="remaining">Remaining: 0</div>
+      </div>
+      <div id="message"></div>
+    </header>
+
+    <div id="play-area">
+      <div id="bin" aria-label="Trash Bin">🗑</div>
+      <div class="hud" id="hud-info">Level tips: catch all trash!</div>
+    </div>
+  </div>
+
+  <!-- Sounds -->
+  <audio id="catchSound" src="drum.mb3.mp3" preload="auto"></audio>
+  <audio id="bgMusic" src="bg.mb3.mp3" preload="auto" loop></audio>
+
+  <script>
+    const trashTypes = ["🍌","🍕","🌸","🥑","🤡"];
+    const playArea   = document.getElementById('play-area');
+    const bin        = document.getElementById('bin');
+    const messageEl  = document.getElementById('message');
+    const levelEl    = document.getElementById('level');
+    const scoreEl    = document.getElementById('score');
+    const remainingEl= document.getElementById('remaining');
+    const catchSound = document.getElementById('catchSound');
+    const bgMusic    = document.getElementById('bgMusic');
+    const startBtn   = document.getElementById('startBtn');
+    const statusBar  = document.getElementById('status-bar');
+
+    let level = 1;
+    let recycled = 0;
+    let trashCount = 3;
+    const trashItems = new Map();
+    let nextId = 1;
+    let musicStarted = false;
+
+    function ensureMusicStarted() {
+      if (!musicStarted) {
+        musicStarted = true;
+        try { bgMusic.play().catch(()=>{}); } catch(e){}
+      }
+    }
+    function rand(min, max){ return Math.random() * (max - min) + min; }
+    function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
+
+    function createTrash(num){
+      for(let i=0;i<num;i++){
+        const id = 'trash-' + (nextId++);
+        const el = document.createElement('div');
+        el.className = 'trash wiggle';
+        el.dataset.id = id;
+        const emoji = trashTypes[Math.floor(Math.random()*trashTypes.length)];
+        el.textContent = emoji;
+
+        const sizeBase = clamp(30 - (level - 1) * 2, 18, 36);
+        const size = Math.round(rand(sizeBase * 0.8, sizeBase * 1.4));
+        el.style.fontSize = size + 'px';
+        const boxSize = Math.ceil(size * 1.4);
+        el.style.width = boxSize + 'px';
+        el.style.height = boxSize + 'px';
+
+        const rect = playArea.getBoundingClientRect();
+        const x = Math.round(rand(22, rect.width - 22 - boxSize));
+        const y = Math.round(rand(rect.height - boxSize - 50, rect.height - boxSize - 10));
+        el.style.left = x + 'px';
+        el.style.top  = y + 'px';
+
+        playArea.appendChild(el);
+
+        const obj = { id, el, x, y, size: boxSize, dragging:false, pointerId:null, dragOffsetX:0, dragOffsetY:0 };
+        trashItems.set(id, obj);
+
+        el.addEventListener('pointerdown', (ev) => {
+          ensureMusicStarted();
+          ev.preventDefault();
+          const areaRect = playArea.getBoundingClientRect();
+          try { el.setPointerCapture(ev.pointerId); } catch(e) {}
+          obj.dragging = true;
+          obj.pointerId = ev.pointerId;
+          obj.dragOffsetX = ev.clientX - areaRect.left - obj.x;
+          obj.dragOffsetY = ev.clientY - areaRect.top  - obj.y;
+          el.style.transition = 'none';
+          el.classList.remove('wiggle');
+        });
+        el.addEventListener('pointermove', (ev) => {
+          if (!obj.dragging || obj.pointerId !== ev.pointerId) return;
+          const areaRect = playArea.getBoundingClientRect();
+          obj.x = clamp(ev.clientX - areaRect.left - obj.dragOffsetX, 0, areaRect.width  - obj.size);
+          obj.y = clamp(ev.clientY - areaRect.top  - obj.dragOffsetY, 0, areaRect.height - obj.size);
+          el.style.left = Math.round(obj.x) + 'px';
+          el.style.top  = Math.round(obj.y) + 'px';
+        });
+        function endDrag(ev){
+          if (obj.pointerId !== ev.pointerId) return;
+          try { el.releasePointerCapture(ev.pointerId); } catch(e) {}
+          obj.dragging = false; obj.pointerId = null;
+          el.classList.add('wiggle');
+          if (isOverBin(obj.x + obj.size/2, obj.y + obj.size/2)) {
+            collectTrash(id);
+          }
+        }
+        el.addEventListener('pointerup', endDrag);
+        el.addEventListener('pointercancel', endDrag);
+      }
+      remainingEl.textContent = 'Remaining: ' + trashItems.size;
+      updateHUD();
+    }
+
+    function isOverBin(cx, cy){
+      const binRect = bin.getBoundingClientRect();
+      const areaRect = playArea.getBoundingClientRect();
+      const bx = binRect.left - areaRect.left + binRect.width/2;
+      const by = binRect.top  - areaRect.top  + binRect.height/2;
+      const dist = Math.hypot(cx-bx, cy-by);
+      return dist < binRect.width/2 + 20;
+    }
+
+    function collectTrash(id){
+      const obj = trashItems.get(id);
+      if(!obj) return;
+      try { catchSound.currentTime = 0; catchSound.play().catch(()=>{}); } catch(e){}
+      bin.classList.add('scaled');
+      setTimeout(()=>bin.classList.remove('scaled'), 200);
+
+      const inside = document.createElement('div');
+      inside.className = 'inside-trash';
+      inside.textContent = obj.el.textContent;
+      bin.appendChild(inside);
+      setTimeout(()=>inside.remove(), 2000);
+
+      try{ playArea.removeChild(obj.el); } catch(e){}
+      trashItems.delete(id);
+
+      recycled++;
+      scoreEl.textContent = 'Recycled: ' + recycled;
+      remainingEl.textContent = 'Remaining: ' + trashItems.size;
+      showMessage('Nice! Trash recycled ♻');
+      updateHUD();
+      maybeLevelUp();
+    }
+
+    function showMessage(text, timeout=2000){
+      messageEl.textContent = text;
+      if(timeout>0){
+        clearTimeout(showMessage._t);
+        showMessage._t = setTimeout(()=> {
+          if(messageEl.textContent === text) messageEl.textContent = '';
+        }, timeout);
+      }
+    }
+
+   function updateHUD() {
+  levelEl.textContent = 'Level: ' + level;
+  scoreEl.textContent = 'Recycled: ' + recycled;
+  remainingEl.textContent = 'Remaining: ' + trashItems.size;
+  document.getElementById('hud-info').textContent = `Level ${level} — catch all trash!`;
+}
+
+
+    function maybeLevelUp(){
+      if(trashItems.size === 0){
+        level++;
+        trashCount += 2;
+        showMessage('Level up! New trash incoming...');
+        setTimeout(()=> { createTrash(trashCount); }, 900);
+        updateHUD();
+      }
+    }
+
+    function init(){
+      showMessage('Welcome! Drag trash into the bin to recycle ♻', 4000);
+      createTrash(trashCount);
+    }
+
+    // Start button logic
+    startBtn.addEventListener('click', ()=>{
+      startBtn.style.display = "none";
+      playArea.style.display = "block";
+      statusBar.style.display = "flex";
+      init();
+      ensureMusicStarted();
+    });
+  </script>
+</body>
+</html>
